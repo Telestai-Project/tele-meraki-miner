@@ -22,8 +22,8 @@ namespace eth
 struct PoolSettings
 {
     std::vector<std::shared_ptr<URI>> connections;  // List of connection definitions
-    unsigned getWorkPollInterval = 1000;            // Interval (ms) between getwork requests
-    unsigned noWorkTimeout = 100000;                // If no new jobs in this number of seconds drop connection
+    unsigned getWorkPollInterval = 250;             // Interval (ms) between getwork requests
+    unsigned noWorkTimeout = 180;                   // If no new jobs in this number of seconds drop connection
     unsigned noResponseTimeout = 2;                 // If no response in this number of seconds drop connection
     unsigned poolFailoverTimeout = 0;               // Return to primary pool after this number of minutes
     bool reportHashrate = false;                    // Whether or not to report hashrate to pool
@@ -69,6 +69,7 @@ private:
 
     void failovertimer_elapsed(const boost::system::error_code& ec);
     void submithrtimer_elapsed(const boost::system::error_code& ec);
+    void reconnecttimer_elapsed(const boost::system::error_code& ec);
 
     std::atomic<bool> m_running = {false};
     std::atomic<bool> m_stopping = {false};
@@ -86,6 +87,7 @@ private:
     boost::asio::io_service::strand m_io_strand;
     boost::asio::deadline_timer m_failovertimer;
     boost::asio::deadline_timer m_submithrtimer;
+    boost::asio::deadline_timer m_reconnecttimer;
 
     std::unique_ptr<PoolClient> p_client = nullptr;
 

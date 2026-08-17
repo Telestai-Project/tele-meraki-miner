@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 
 #include "PoolManager.h"
@@ -12,7 +13,8 @@ PoolManager::PoolManager(PoolSettings _settings)
   : m_Settings(std::move(_settings)),
     m_io_strand(g_io_service),
     m_failovertimer(g_io_service),
-    m_submithrtimer(g_io_service)
+    m_submithrtimer(g_io_service),
+    m_reconnecttimer(g_io_service)
 {
     m_this = this;
 
@@ -38,7 +40,12 @@ PoolManager::PoolManager(PoolSettings _settings)
 
         if (p_client && p_client->isConnected())
         {
-            p_client->submitSolution(sol);
+            if (p_client->submitSolution(sol))
+            {
+                // Stop hashing/logging until the next job. Easy TestNet targets
+                // otherwise flood the process with solutions and starve RPC I/O.
+                Farm::f().pause();
+            }
         }
         else
         {
@@ -121,6 +128,7 @@ void PoolManager::setClientHandlers()
         // Stop timing actors
         m_failovertimer.cancel();
         m_submithrtimer.cancel();
+        m_reconnecttimer.cancel();
 
         if (m_stopping.load(std::memory_order_relaxed))
         {
@@ -136,10 +144,14 @@ void PoolManager::setClientHandlers()
             // Signal we will reconnect async
             m_async_pending.store(true, std::memory_order_relaxed);
 
-            // Suspend mining and submit new connection request
+            // Suspend mining and submit new connection request (backoff on refused/dead proxy).
             cnote << "No connection. Suspend mining ...";
             Farm::f().pause();
-            g_io_service.post(m_io_strand.wrap(boost::bind(&PoolManager::rotateConnect, this)));
+            unsigned shift = std::min(m_connectionAttempt, 5u);
+            unsigned backoff_ms = std::min(8000u, 250u * (1u << shift));
+            m_reconnecttimer.expires_from_now(boost::posix_time::milliseconds(backoff_ms));
+            m_reconnecttimer.async_wait(m_io_strand.wrap(
+                boost::bind(&PoolManager::reconnecttimer_elapsed, this, boost::asio::placeholders::error)));
         }
     });
 
@@ -189,6 +201,9 @@ void PoolManager::setClientHandlers()
               << (m_currentWp.block.has_value() ? (" block " + to_string(m_currentWp.block.value())) : "") << EthReset
               << " " << m_selectedHost;
 
+        // Resume before setWork — Miner::setWork voids the package while paused.
+        if (Farm::f().paused())
+            Farm::f().resume();
         Farm::f().setWork(m_currentWp);
     });
 
@@ -229,6 +244,7 @@ void PoolManager::stop()
             // Stop timing actors
             m_failovertimer.cancel();
             m_submithrtimer.cancel();
+            m_reconnecttimer.cancel();
 
             if (Farm::f().isMining())
             {
@@ -343,7 +359,7 @@ Json::Value PoolManager::getConnectionsJson()
         Json::Value JConn;
         JConn["index"] = (unsigned)i;
         JConn["active"] = (i == m_activeConnectionIdx ? true : false);
-        JConn["uri"] = m_Settings.connections[i]->str();
+        JConn["uri"] = m_Settings.connections[i]->strRedacted();
         jRes.append(JConn);
     }
     return jRes;
@@ -460,6 +476,12 @@ void PoolManager::showMiningAt()
     double d = dev::getHashesToTarget(m_currentWp.get_boundary().hex(HexPrefix::Add));
     cnote << "Epoch : " EthWhite << m_currentWp.epoch.value() << EthReset << " Difficulty : " EthWhite
           << dev::getFormattedHashes(d) << EthReset;
+}
+
+void PoolManager::reconnecttimer_elapsed(const boost::system::error_code& ec)
+{
+    if (!ec && m_running.load(std::memory_order_relaxed) && !m_stopping.load(std::memory_order_relaxed))
+        rotateConnect();
 }
 
 void PoolManager::failovertimer_elapsed(const boost::system::error_code& ec)

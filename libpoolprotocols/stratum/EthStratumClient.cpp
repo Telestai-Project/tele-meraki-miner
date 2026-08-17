@@ -1668,12 +1668,12 @@ void EthStratumClient::submitHashrate(uint64_t const& rate, string const& id)
     send(jReq);
 }
 
-void EthStratumClient::submitSolution(const Solution& solution)
+bool EthStratumClient::submitSolution(const Solution& solution)
 {
     if (!isAuthorized())
     {
         cwarn << "Solution not submitted. Not authorized.";
-        return;
+        return false;
     }
 
     Json::Value jReq;
@@ -1728,6 +1728,7 @@ void EthStratumClient::submitSolution(const Solution& solution)
 
     enqueue_response_plea();
     send(jReq);
+    return true;
 }
 
 void EthStratumClient::recvSocketData()

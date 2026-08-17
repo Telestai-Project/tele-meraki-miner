@@ -21,7 +21,7 @@ HunterGate(
 
 
 project(telemerakiminer)
-set(PROJECT_VERSION 1.3.0)
+set(PROJECT_VERSION 1.5.1)
 
 
 option(ETHASHCL "Build with OpenCL mining" ON)

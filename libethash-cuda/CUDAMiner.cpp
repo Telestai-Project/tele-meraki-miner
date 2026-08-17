@@ -609,18 +609,19 @@ void CUDAMiner::search(uint8_t const* header, uint64_t target, uint64_t start_no
             if (found_count)
             {
                 uint64_t nonce_base = start_nonce - m_streams_batch_size;
-                for (uint32_t i = 0; i < found_count; i++)
-                {
-                    uint64_t nonce = nonce_base + gids[i];
-                    Farm::f().submitProof(Solution{nonce, mixHashes[i], w, std::chrono::steady_clock::now(), m_index});
+                // Easy solo targets can return a full result buffer every launch.
+                // Submit/log only the first hit; Farm pause stops further search.
+                uint32_t i = 0;
+                uint64_t nonce = nonce_base + gids[i];
+                Farm::f().submitProof(Solution{nonce, mixHashes[i], w, std::chrono::steady_clock::now(), m_index});
 
-                    double d = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::steady_clock::now() - search_start)
-                                   .count();
+                double d = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - search_start)
+                               .count();
 
-                    cudalog << EthWhite << "Job: " << w.header.abridged() << " Sol: 0x" << toHex(nonce)
-                            << EthLime " found in " << dev::getFormattedElapsed(d) << EthReset;
-                }
+                cudalog << EthWhite << "Job: " << w.header.abridged() << " Sol: 0x" << toHex(nonce)
+                        << EthLime " found in " << dev::getFormattedElapsed(d) << EthReset;
+                done = true;
             }
         }
 

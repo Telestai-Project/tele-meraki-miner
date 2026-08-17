@@ -62,6 +62,7 @@ private:
     boost::asio::streambuf m_recvBuffer;
     Json::StreamWriterBuilder m_jSwBuilder;
 
+    static constexpr std::size_t kMaxMessageBytes = 1024 * 1024;
     std::string m_message;  // The internal message string buffer
 
     bool m_readonly = false;
@@ -93,5 +94,6 @@ private:
     uint16_t m_portnumber;
     tcp::acceptor m_acceptor;
     boost::asio::io_service::strand m_io_strand;
+    static constexpr std::size_t kMaxSessions = 16;
     std::vector<std::shared_ptr<ApiConnection>> m_sessions;
 };

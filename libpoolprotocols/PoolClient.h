@@ -70,7 +70,8 @@ public:
     virtual void connect() = 0;
     virtual void disconnect() = 0;
     virtual void submitHashrate(uint64_t const& rate, string const& id) = 0;
-    virtual void submitSolution(const Solution& solution) = 0;
+    // Returns true if the seal was accepted for submission (false if dropped).
+    virtual bool submitSolution(const Solution& solution) = 0;
     virtual bool isConnected() { return m_connected.load(memory_order_relaxed); }
     virtual bool isPendingState() { return false; }
 

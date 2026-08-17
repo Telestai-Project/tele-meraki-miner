@@ -305,6 +305,15 @@ void ApiServer::handle_accept(std::shared_ptr<ApiConnection> session, boost::sys
     // cnote << "ApiServer::handle_accept";
     if (!ec)
     {
+        if (m_sessions.size() >= kMaxSessions)
+        {
+            cwarn << "API connection rejected (max " << kMaxSessions << " sessions)";
+            boost::system::error_code close_ec;
+            session->socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, close_ec);
+            session->socket().close(close_ec);
+            begin_accept();
+            return;
+        }
         session->onDisconnected([&](int id) {
             // Destroy pointer to session
             auto it = find_if(m_sessions.begin(), m_sessions.end(),
@@ -770,6 +779,12 @@ void ApiConnection::onRecvSocketDataCompleted(
             boost::asio::buffer_cast<const char*>(m_recvBuffer.data()), bytes_transferred);
         m_recvBuffer.consume(bytes_transferred);
         m_message.append(rx_message);
+        if (m_message.size() > kMaxMessageBytes)
+        {
+            cwarn << "API session " << m_sessionId << " exceeded max message size";
+            disconnect();
+            return;
+        }
 
         std::string line;
         std::string linedelimiter;

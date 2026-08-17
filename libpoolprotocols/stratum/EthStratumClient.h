@@ -77,7 +77,7 @@ public:
     }
 
     void submitHashrate(uint64_t const& rate, string const& id) override;
-    void submitSolution(const Solution& solution) override;
+    bool submitSolution(const Solution& solution) override;
 
     h256 currentHeaderHash() { return m_current.header; }
     bool current() { return static_cast<bool>(m_current); }

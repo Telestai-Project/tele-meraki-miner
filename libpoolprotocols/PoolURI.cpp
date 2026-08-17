@@ -416,6 +416,20 @@ bool URI::IsLoopBack() const
     return m_isLoopBack;
 }
 
+std::string URI::strRedacted() const
+{
+    std::ostringstream ss;
+    ss << m_scheme << "://";
+    if (!m_user.empty() || m_password != "X")
+        ss << m_user << ":***@";
+    ss << m_host;
+    if (m_port)
+        ss << ":" << m_port;
+    if (!m_path.empty())
+        ss << m_path;
+    return ss.str();
+}
+
 std::string URI::KnownSchemes(ProtocolFamily family)
 {
     std::string schemes;

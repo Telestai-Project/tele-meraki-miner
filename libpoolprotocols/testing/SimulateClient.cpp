@@ -50,7 +50,7 @@ void SimulateClient::submitHashrate(uint64_t const& rate, string const& id)
     (void)id;
 }
 
-void SimulateClient::submitSolution(const Solution& solution)
+bool SimulateClient::submitSolution(const Solution& solution)
 {
     // This is a fake submission only evaluated locally
     solution_arrived.store(true);
@@ -83,6 +83,7 @@ void SimulateClient::submitSolution(const Solution& solution)
         if (m_onSolutionRejected)
             m_onSolutionRejected(response_delay_ms, solution.midx);
     }
+    return true;
 }
 
 // Handles all logic here

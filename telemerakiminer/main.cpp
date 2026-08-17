@@ -255,7 +255,7 @@ public:
         app.add_option("--farm-retries", m_PoolSettings.connectionMaxRetries, "", true)->check(CLI::Range(0, 99999));
 
         app.add_option("--work-timeout", m_PoolSettings.noWorkTimeout, "", true)
-            ->check(CLI::Range(100000, 1000000));
+            ->check(CLI::Range(30, 86400));
 
         app.add_option("--response-timeout", m_PoolSettings.noResponseTimeout, "", true)
             ->check(CLI::Range(2, 999));
@@ -860,10 +860,10 @@ public:
                  << endl
                  << "                        Use negative port number for readonly mode" << endl
                  << "    --api-port          INT [1 .. 65535] Default not set" << endl
-                 << "                        Set the API port, the miner should listen on all "
-                    "bound"
+                 << "                        Set the API port. Binds 127.0.0.1 unless "
+                    "--api-bind is set."
                  << endl
-                 << "                        addresses. Use negative numbers for readonly mode"
+                 << "                        Use negative numbers for readonly mode"
                  << endl
                  << "    --api-password      TEXT Default not set" << endl
                  << "                        Set the password to protect interaction with API "
@@ -967,11 +967,14 @@ public:
                  << endl
                  << "    --display-interval  INT[1 .. 1800] Default = 5" << endl
                  << "                        Statistic display interval in seconds" << endl
-                 << "    --farm-recheck      INT[1 .. 99999] Default = 500" << endl
+                 << "    --farm-recheck      INT[1 .. 99999] Default = 250" << endl
                  << "                        Set polling interval for new work in getWork mode"
                  << endl
                  << "                        Value expressed in milliseconds" << endl
                  << "                        It has no meaning in stratum mode" << endl
+                 << "                        GBT longpoll is used when the node provides "
+                    "longpollid"
+                 << endl
                  << "    --farm-retries      INT[1 .. 99999] Default = 3" << endl
                  << "                        Set number of reconnection retries to same pool"
                  << endl
@@ -981,7 +984,7 @@ public:
                  << "                        reconnect to the primary (the first) connection."
                  << endl
                  << "                        before switching to a fail-over connection" << endl
-                 << "    --work-timeout      INT[180 .. 99999] Default = 180" << endl
+                 << "    --work-timeout      INT[30 .. 86400] Default = 180" << endl
                  << "                        If no new work received from pool after this" << endl
                  << "                        amount of time the connection is dropped" << endl
                  << "                        Value expressed in seconds." << endl
@@ -1209,7 +1212,12 @@ private:
 
         ApiServer api(m_api_address, m_api_port, m_api_password);
         if (m_api_port)
+        {
+            if (m_api_address != "127.0.0.1" && m_api_address != "::1" && m_api_password.empty())
+                cwarn << "API bound to " << m_api_address
+                      << " with no password. Use --api-password or bind localhost.";
             api.start();
+        }
 
 #endif
 
@@ -1274,7 +1282,7 @@ private:
 #if API_CORE
     // -- API and Http interfaces related params
     string m_api_bind;                  // API interface binding address in form <address>:<port>
-    string m_api_address = "0.0.0.0";   // API interface binding address (Default any)
+    string m_api_address = "127.0.0.1"; // API interface binding address (localhost)
     int m_api_port = 0;                 // API interface binding port
     string m_api_password;              // API interface write protection password
 #endif

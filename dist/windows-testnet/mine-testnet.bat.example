@@ -1,0 +1,5 @@
+@echo off
+cd /d "%~dp0"
+REM Replace the -P URL with the TestNet proxy Chief sent you.
+telemerakiminer.exe -U --farm-recheck 250 --work-timeout 180 -P http://USER:PASS@HOST:18768/
+if errorlevel 1 pause

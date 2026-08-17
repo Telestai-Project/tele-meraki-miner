@@ -27,7 +27,7 @@ public:
     string ActiveEndPoint() override { return ""; };
 
     void submitHashrate(uint64_t const& rate, string const& id) override;
-    void submitSolution(const Solution& solution) override;
+    bool submitSolution(const Solution& solution) override;
 
 private:
 
