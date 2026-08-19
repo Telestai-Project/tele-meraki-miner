@@ -13,4 +13,6 @@ This zip is only the miner. You do not need Telestai Core, a wallet, or telestai
 
 You want to see "Accepted" in the miner window. That is TestNet only — not mainnet TLS.
 
+If the window says `--work-timeout: Value 180 not in range 100000 to 1000000`, you have an older 1.5.0 zip. Edit mine-testnet.bat and delete `--work-timeout 180`. Leave the rest of the line. Save and run again. Do not change 180 to 180000.
+
 Do not follow the old 1.5.0 GitHub notes (AppData\Roaming\Telestai, addnode=45.79.159.32, rpcport=8766). Those are for a local 2.1.x wallet, not Core 3.0.0 TestNet.
